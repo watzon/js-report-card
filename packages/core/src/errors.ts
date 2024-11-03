@@ -25,6 +25,7 @@ export const DownloaderErrorCodes = {
   GIT_CLONE_FAILED: 'GIT_CLONE_FAILED',
   ZIP_EXTRACT_FAILED: 'ZIP_EXTRACT_FAILED',
   NPM_DOWNLOAD_FAILED: 'NPM_DOWNLOAD_FAILED',
+  LOCAL_COPY_FAILED: 'LOCAL_COPY_FAILED',
 } as const;
 
 export type DownloaderErrorCode = keyof typeof DownloaderErrorCodes;
@@ -48,4 +49,4 @@ export const AnalyzerErrorCodes = {
   ANALYZER_NOT_FOUND: 'ANALYZER_NOT_FOUND',
 } as const;
 
-export type AnalyzerErrorCode = keyof typeof AnalyzerErrorCodes; 
+export type AnalyzerErrorCode = keyof typeof AnalyzerErrorCodes;

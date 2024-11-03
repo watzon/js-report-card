@@ -11,7 +11,7 @@ import {
   GitProjectSource,
   BaseProjectSource
 } from '../types';
-import { DownloaderError } from '../errors';
+import { DownloaderError, DownloaderErrorCodes } from '../errors';
 
 /**
  * Downloads projects from Git repositories
@@ -38,6 +38,14 @@ export class GitDownloader implements IProjectDownloader {
   }
 
   async download(source: GitProjectSource): Promise<DownloadResult> {
+    if (!this.isValidGitUrl(source.url)) {
+      throw new DownloaderError(
+        'Invalid Git URL',
+        DownloaderErrorCodes.INVALID_SOURCE,
+        source.type
+      );
+    }
+
     const targetDir = join(tmpdir(), 'js-report-card', uuidv4());
     const git = simpleGit();
 
@@ -46,18 +54,12 @@ export class GitDownloader implements IProjectDownloader {
         '--depth': source.depth || 1,
       };
 
+      let cloneUrl = source.url;
       if (source.auth) {
-        // Handle authentication
-        const authUrl = new URL(source.url);
-        if (source.auth.token) {
-          authUrl.username = source.auth.token;
-        } else if (source.auth.username) {
-          authUrl.username = source.auth.username;
-        }
-        source.url = authUrl.toString();
+        cloneUrl = this.addAuthToUrl(source.url, source.auth);
       }
 
-      await git.clone(source.url, targetDir, cloneOptions);
+      await git.clone(cloneUrl, targetDir, cloneOptions);
 
       if (source.ref) {
         await git.cwd(targetDir).checkout(source.ref);
@@ -79,8 +81,37 @@ export class GitDownloader implements IProjectDownloader {
       
       throw new DownloaderError(
         `Git clone failed: ${(error as Error).message}`,
-        'GIT_CLONE_FAILED',
-        source.type
+        DownloaderErrorCodes.GIT_CLONE_FAILED,
+        source.type,
+        error
+      );
+    }
+  }
+
+  private isValidGitUrl(url: string): boolean {
+    try {
+      const parsed = new URL(url);
+      return parsed.protocol === 'https:' || parsed.protocol === 'git:' || parsed.protocol === 'ssh:';
+    } catch {
+      return false;
+    }
+  }
+
+  private addAuthToUrl(url: string, auth: { username?: string; token?: string }): string {
+    try {
+      const parsed = new URL(url);
+      if (auth.username && auth.token) {
+        parsed.username = auth.username;
+        parsed.password = auth.token;
+      } else if (auth.token) {
+        parsed.username = auth.token;
+      }
+      return parsed.toString();
+    } catch {
+      throw new DownloaderError(
+        'Invalid Git URL',
+        DownloaderErrorCodes.INVALID_SOURCE,
+        ProjectSourceType.GIT
       );
     }
   }
@@ -97,11 +128,9 @@ export class GitDownloader implements IProjectDownloader {
       // Get the commit hash for the current ref
       const hash = await git.revparse(['HEAD']);
       key += `:${hash.trim()}`;
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       // If we can't get the hash, use a timestamp
       key += `:${Date.now()}`;
-      // TODO: log error
     }
 
     return key;

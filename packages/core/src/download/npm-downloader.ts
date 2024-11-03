@@ -39,6 +39,14 @@ export class NpmDownloader implements IProjectDownloader {
   }
 
   async download(source: NpmProjectSource): Promise<DownloadResult> {
+    if (!source.packageName?.trim()) {
+      throw new DownloaderError(
+        'Invalid package name: Package name cannot be empty',
+        'NPM_INVALID_PACKAGE',
+        source.type
+      );
+    }
+
     const targetDir = join(tmpdir(), 'js-report-card', uuidv4());
 
     try {
@@ -54,6 +62,11 @@ export class NpmDownloader implements IProjectDownloader {
       // Use npm pack to download the package
       const { stdout } = await execAsync(`npm pack ${packageId} --pack-destination "${targetDir}"`);
       const tarballName = stdout.trim();
+      
+      if (!tarballName) {
+        throw new Error('npm pack produced no output');
+      }
+
       const tarballPath = join(targetDir, tarballName);
 
       // Extract the tarball
@@ -81,7 +94,8 @@ export class NpmDownloader implements IProjectDownloader {
       throw new DownloaderError(
         `NPM download failed: ${(error as Error).message}`,
         'NPM_DOWNLOAD_FAILED',
-        source.type
+        source.type,
+        error
       );
     }
   }

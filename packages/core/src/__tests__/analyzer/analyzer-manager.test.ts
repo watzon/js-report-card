@@ -1,6 +1,7 @@
 import { AnalyzerManager } from '../../analyzer/analyzer-manager';
-import { IAnalyzer, AnalysisContext } from '../../types';
+import { IAnalyzer, AnalysisContext, ProjectSourceType } from '../../types';
 import { AnalyzerError } from '../../errors';
+import { MemoryCache } from '../../cache';
 
 describe('AnalyzerManager', () => {
   let manager: AnalyzerManager;
@@ -91,6 +92,137 @@ describe('AnalyzerManager', () => {
 
       expect(analyzer1.cleanup).toHaveBeenCalled();
       expect(analyzer2.cleanup).toHaveBeenCalled();
+    });
+  });
+
+  describe('caching behavior', () => {
+    let cache: MemoryCache;
+    let manager: AnalyzerManager;
+
+    beforeEach(() => {
+      cache = new MemoryCache();
+      manager = new AnalyzerManager({ 
+        cache,
+        maxCacheAge: 1000 // 1 second for testing
+      });
+    });
+
+    it('should return cached results when valid', async () => {
+      const analyzer = createMockAnalyzer('test');
+      manager.registerAnalyzer(analyzer);
+
+      const context: Omit<AnalysisContext, 'config'> = {
+        projectRoot: '/test',
+        files: ['file1.ts'],
+        downloadResult: {
+          path: '/test',
+          cleanup: jest.fn(),
+          metadata: {
+            version: 'test-version',
+            type: ProjectSourceType.GIT
+          }
+        }
+      };
+
+      // First run should cache
+      await manager.runAnalysis(context, {
+        test: { enabled: true }
+      });
+
+      // Second run should use cache
+      const secondRun = await manager.runAnalysis(context, {
+        test: { enabled: true }
+      });
+
+      expect(analyzer.analyze).toHaveBeenCalledTimes(1);
+      expect(secondRun).toBeDefined();
+    });
+
+    it('should ignore cache when expired', async () => {
+      const analyzer = createMockAnalyzer('test');
+      manager.registerAnalyzer(analyzer);
+
+      const context: Omit<AnalysisContext, 'config'> = {
+        projectRoot: '/test',
+        files: ['file1.ts'],
+        downloadResult: {
+          path: '/test',
+          cleanup: jest.fn(),
+          metadata: {
+            version: 'test-version',
+            type: ProjectSourceType.GIT
+          }
+        }
+      };
+
+      // First run
+      await manager.runAnalysis(context, {
+        test: { enabled: true }
+      });
+
+      // Wait for cache to expire
+      await new Promise(resolve => setTimeout(resolve, 1100));
+
+      // Second run should not use cache
+      await manager.runAnalysis(context, {
+        test: { enabled: true }
+      });
+
+      expect(analyzer.analyze).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('error handling', () => {
+    it('should throw when analyzer validation fails', async () => {
+      const analyzer = createMockAnalyzer('test');
+      const validationError = new Error('Invalid config');
+      analyzer.validateConfig = jest.fn().mockRejectedValue(validationError);
+      
+      manager.registerAnalyzer(analyzer);
+
+      const context: Omit<AnalysisContext, 'config'> = {
+        projectRoot: '/test',
+        files: ['file1.ts']
+      };
+
+      await expect(manager.runAnalysis(context, {
+        test: { 
+          enabled: true,
+          rules: { someRule: true }
+        }
+      })).rejects.toThrow(AnalyzerError);
+    });
+
+    it('should throw when analyzer execution fails', async () => {
+      const analyzer = createMockAnalyzer('test');
+      const analysisError = new Error('Analysis failed');
+      analyzer.analyze = jest.fn().mockRejectedValue(analysisError);
+      
+      manager.registerAnalyzer(analyzer);
+
+      const context: Omit<AnalysisContext, 'config'> = {
+        projectRoot: '/test',
+        files: ['file1.ts']
+      };
+
+      await expect(manager.runAnalysis(context, {
+        test: { enabled: true }
+      })).rejects.toThrow(AnalyzerError);
+    });
+  });
+
+  describe('listAnalyzers', () => {
+    it('should return all registered analyzers', () => {
+      const analyzer1 = createMockAnalyzer('test1');
+      const analyzer2 = createMockAnalyzer('test2');
+      
+      manager.registerAnalyzer(analyzer1);
+      manager.registerAnalyzer(analyzer2);
+
+      const analyzers = manager.listAnalyzers();
+      expect(analyzers).toHaveLength(2);
+      expect(analyzers).toContain(analyzer1);
+      expect(analyzers).toContain(analyzer2);
     });
   });
 }); 

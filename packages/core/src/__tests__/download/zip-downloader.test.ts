@@ -159,6 +159,51 @@ describe('ZipDownloader', () => {
         expect.objectContaining({ recursive: true, force: true })
       );
     });
+
+    it('should handle network errors during download', async () => {
+      const source: ZipProjectSource = {
+        type: ProjectSourceType.ZIP,
+        url: 'https://example.com/project.zip'
+      };
+      
+      global.fetch = jest.fn().mockRejectedValue(new Error('Network error'));
+
+      await expect(downloader.download(source))
+        .rejects
+        .toThrow(DownloaderError);
+    });
+
+    it('should handle extraction failures', async () => {
+      const source: ZipProjectSource = {
+        type: ProjectSourceType.ZIP,
+        url: 'https://example.com/project.zip'
+      };
+      
+      (extract as jest.Mock).mockRejectedValue(new Error('Invalid zip file'));
+
+      await expect(downloader.download(source))
+        .rejects
+        .toThrow(DownloaderError);
+    });
+
+    it('should handle username and token authentication', async () => {
+      const source: ZipProjectSource = {
+        type: ProjectSourceType.ZIP,
+        url: 'https://example.com/project.zip',
+        auth: {
+          username: 'user',
+          token: 'secret-token'
+        }
+      };
+
+      await downloader.download(source);
+
+      expect(global.fetch).toHaveBeenCalledWith(source.url, {
+        headers: {
+          'Authorization': 'Basic ' + Buffer.from('user:secret-token').toString('base64')
+        }
+      });
+    });
   });
 
   describe('cleanup', () => {

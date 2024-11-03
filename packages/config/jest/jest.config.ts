@@ -19,6 +19,7 @@ const baseConfig: Config = {
   },
   collectCoverageFrom: [
     'src/**/*.{ts,tsx}',
+    '!src/**/index.ts',
     '!src/**/*.d.ts',
     '!src/**/__tests__/**'
   ]

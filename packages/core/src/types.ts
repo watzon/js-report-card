@@ -241,15 +241,3 @@ export interface ProjectAnalysisResult {
     timestamp: string;
     duration: number;
 }
-
-// Error Types
-export class AnalyzerError extends Error {
-    constructor(
-        message: string,
-        public readonly analyzerId: string,
-        public readonly code: string,
-    ) {
-        super(message);
-        this.name = 'AnalyzerError';
-    }
-}

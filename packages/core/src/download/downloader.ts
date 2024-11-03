@@ -1,5 +1,5 @@
 import { BaseProjectSource, DownloadResult, IProjectDownloader } from '../types';
-import { DownloaderError } from '../errors';
+import { DownloaderError, DownloaderErrorCodes } from '../errors';
 
 /**
  * Main downloader service that orchestrates different download strategies
@@ -55,14 +55,48 @@ export class ProjectDownloader {
    * @throws DownloaderError if no compatible downloader is found or download fails
    */
   async download(source: BaseProjectSource): Promise<DownloadResult> {
-    for (const downloader of this.downloaders.values()) {
+    // Handle null/undefined source
+    if (!source) {
+      throw new DownloaderError(
+        'Invalid source: source cannot be null or undefined',
+        DownloaderErrorCodes.INVALID_SOURCE,
+        'unknown'
+      );
+    }
+
+    // Handle invalid source type
+    if (!source.type) {
+      throw new DownloaderError(
+        'Invalid source: missing source type',
+        DownloaderErrorCodes.INVALID_SOURCE,
+        'unknown'
+      );
+    }
+
+    // Find compatible downloader
+    for (const [, downloader] of this.downloaders) {
       if (downloader.canHandle(source)) {
-        return downloader.download(source);
+        try {
+          return await downloader.download(source);
+        } catch (error) {
+          // Wrap non-Error throws in a DownloaderError
+          if (!(error instanceof Error)) {
+            throw new DownloaderError(
+              'Download failed with non-Error object',
+              DownloaderErrorCodes.DOWNLOAD_FAILED,
+              source.type,
+              error
+            );
+          }
+          throw error;
+        }
       }
     }
+
+    // No compatible downloader found
     throw new DownloaderError(
       'No compatible downloader found',
-      'DOWNLOADER_NOT_FOUND',
+      DownloaderErrorCodes.DOWNLOADER_NOT_FOUND,
       source.type
     );
   }

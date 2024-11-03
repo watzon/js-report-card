@@ -1,4 +1,4 @@
-import { cp } from 'fs/promises';
+import { cp, access } from 'fs/promises';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { v4 as uuidv4 } from 'uuid';
@@ -12,7 +12,7 @@ import {
   LocalProjectSource,
   BaseProjectSource
 } from '../types';
-import { DownloaderError } from '../errors';
+import { DownloaderError, DownloaderErrorCodes } from '../errors';
 
 /**
  * Handles local filesystem projects by copying them to a temporary directory
@@ -35,9 +35,31 @@ export class LocalDownloader implements IProjectDownloader {
   }
 
   async download(source: LocalProjectSource): Promise<DownloadResult> {
+    // Validate path
+    if (!source.path?.trim()) {
+      throw new DownloaderError(
+        'Invalid path: Path cannot be empty',
+        DownloaderErrorCodes.INVALID_SOURCE,
+        source.type
+      );
+    }
+
+    // Check if path exists
+    try {
+      await access(source.path);
+    } catch (error) {
+      throw new DownloaderError(
+        `Path does not exist or is not accessible: ${source.path}`,
+        DownloaderErrorCodes.INVALID_SOURCE,
+        source.type,
+        error
+      );
+    }
+
     const targetDir = join(tmpdir(), 'js-report-card', uuidv4());
 
     try {
+      // Copy the directory
       await cp(source.path, targetDir, { recursive: true });
 
       return {
@@ -47,6 +69,7 @@ export class LocalDownloader implements IProjectDownloader {
         },
       };
     } catch (error) {
+      // Cleanup on failure
       try {
         await rm(targetDir, { recursive: true, force: true });
       } catch (cleanupError) {
@@ -55,8 +78,9 @@ export class LocalDownloader implements IProjectDownloader {
       
       throw new DownloaderError(
         `Local copy failed: ${(error as Error).message}`,
-        'LOCAL_COPY_FAILED',
-        source.type
+        DownloaderErrorCodes.LOCAL_COPY_FAILED,
+        source.type,
+        error
       );
     }
   }
@@ -64,13 +88,9 @@ export class LocalDownloader implements IProjectDownloader {
   async getCacheKey(source: LocalProjectSource): Promise<string> {
     try {
       const stats = await stat(source.path);
-      // Use path and last modified time
       return `local:${source.path}:${stats.mtime.getTime()}`;
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
-      // If stat fails, use path and current timestamp
       return `local:${source.path}:${Date.now()}`;
-      // TODO: log error
     }
   }
 } 

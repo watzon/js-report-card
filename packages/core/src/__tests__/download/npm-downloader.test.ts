@@ -138,6 +138,52 @@ describe('NpmDownloader', () => {
         expect.objectContaining({ recursive: true, force: true })
       );
     });
+
+    it('should handle tar extraction failures', async () => {
+      const source: NpmProjectSource = {
+        type: ProjectSourceType.NPM,
+        packageName: 'example-package'
+      };
+
+      (exec as unknown as jest.Mock)
+        .mockImplementationOnce((cmd, callback) => {
+          callback(null, { stdout: 'package-1.0.0.tgz\n' });
+        })
+        .mockImplementationOnce((cmd, callback) => {
+          callback(new Error('Tar extraction failed'));
+        });
+
+      await expect(downloader.download(source))
+        .rejects
+        .toThrow(DownloaderError);
+    });
+
+    it('should handle empty pack output', async () => {
+      const source: NpmProjectSource = {
+        type: ProjectSourceType.NPM,
+        packageName: 'example-package'
+      };
+
+      (exec as unknown as jest.Mock)
+        .mockImplementationOnce((cmd, callback) => {
+          callback(null, { stdout: '' });
+        });
+
+      await expect(downloader.download(source))
+        .rejects
+        .toThrow(DownloaderError);
+    });
+
+    it('should handle invalid package names', async () => {
+      const source: NpmProjectSource = {
+        type: ProjectSourceType.NPM,
+        packageName: ''
+      };
+
+      await expect(downloader.download(source))
+        .rejects
+        .toThrow(DownloaderError);
+    });
   });
 
   describe('cleanup', () => {
@@ -158,6 +204,78 @@ describe('NpmDownloader', () => {
         expect.stringContaining('/tmp/js-report-card'),
         expect.objectContaining({ recursive: true, force: true })
       );
+    });
+  });
+
+  describe('error handling', () => {
+    it('should log cleanup errors during failed download', async () => {
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+      const source: NpmProjectSource = {
+        type: ProjectSourceType.NPM,
+        packageName: 'example-package'
+      };
+      
+      (exec as unknown as jest.Mock).mockImplementation((cmd, callback) => {
+        callback(new Error('Download failed'));
+      });
+      (rm as jest.Mock).mockRejectedValue(new Error('Cleanup failed'));
+
+      await expect(downloader.download(source)).rejects.toThrow();
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'Failed to cleanup after failed npm download:',
+        expect.any(Error)
+      );
+      
+      consoleSpy.mockRestore();
+    });
+  });
+
+  describe('getCacheKey', () => {
+    it('should generate cache key with version lookup', async () => {
+      const source: NpmProjectSource = {
+        type: ProjectSourceType.NPM,
+        packageName: 'example-package'
+      };
+
+      (exec as unknown as jest.Mock).mockImplementation((cmd, callback) => {
+        if (cmd.includes('npm view')) {
+          callback(null, { stdout: '1.2.3\n' });
+        }
+      });
+
+      const key = await downloader.getCacheKey(source);
+      expect(key).toBe('npm:example-package:1.2.3');
+    });
+
+    it('should use provided version in cache key', async () => {
+      const source: NpmProjectSource = {
+        type: ProjectSourceType.NPM,
+        packageName: 'example-package',
+        version: '2.0.0'
+      };
+
+      const key = await downloader.getCacheKey(source);
+      expect(key).toBe('npm:example-package:2.0.0');
+    });
+
+    it('should handle version lookup failures with timestamp fallback', async () => {
+      const source: NpmProjectSource = {
+        type: ProjectSourceType.NPM,
+        packageName: 'example-package'
+      };
+
+      (exec as unknown as jest.Mock).mockImplementation((cmd, callback) => {
+        if (cmd.includes('npm view')) {
+          callback(new Error('Version lookup failed'));
+        }
+      });
+      
+      const dateSpy = jest.spyOn(Date, 'now').mockReturnValue(12345);
+
+      const key = await downloader.getCacheKey(source);
+      expect(key).toBe('npm:example-package:12345');
+
+      dateSpy.mockRestore();
     });
   });
 }); 

@@ -98,13 +98,15 @@ export class ZipDownloader implements IProjectDownloader {
     const headers: Record<string, string> = {};
     
     if (source.auth) {
-      if (source.auth.token) {
-        headers['Authorization'] = `Bearer ${source.auth.token}`;
-      } else if (source.auth.username) {
+      if (source.auth.username && source.auth.token) {
+        // If both username and token are provided, use Basic auth
         const auth = Buffer.from(
-          `${source.auth.username}:${source.auth.token || ''}`
+          `${source.auth.username}:${source.auth.token}`
         ).toString('base64');
         headers['Authorization'] = `Basic ${auth}`;
+      } else if (source.auth.token) {
+        // If only token is provided, use Bearer auth
+        headers['Authorization'] = `Bearer ${source.auth.token}`;
       }
     }
 
