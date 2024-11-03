@@ -66,9 +66,11 @@ export class LocalDownloader implements IProjectDownloader {
       const stats = await stat(source.path);
       // Use path and last modified time
       return `local:${source.path}:${stats.mtime.getTime()}`;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       // If stat fails, use path and current timestamp
       return `local:${source.path}:${Date.now()}`;
+      // TODO: log error
     }
   }
 } 

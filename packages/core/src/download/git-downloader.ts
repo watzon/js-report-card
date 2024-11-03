@@ -97,9 +97,11 @@ export class GitDownloader implements IProjectDownloader {
       // Get the commit hash for the current ref
       const hash = await git.revparse(['HEAD']);
       key += `:${hash.trim()}`;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       // If we can't get the hash, use a timestamp
       key += `:${Date.now()}`;
+      // TODO: log error
     }
 
     return key;

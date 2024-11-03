@@ -1,5 +1,4 @@
 import { rm, mkdir } from 'fs/promises';
-import { createWriteStream } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
 import { ReadableStream } from 'node:stream/web';
@@ -149,6 +148,7 @@ describe('ZipDownloader', () => {
       // Act
       try {
         await downloader.download(source);
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (error) {
         // Ignore error
       }

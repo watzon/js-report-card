@@ -95,9 +95,11 @@ export class NpmDownloader implements IProjectDownloader {
       }
       
       return `npm:${source.packageName}:${source.version}`;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       // If npm view fails, use package name and timestamp
       return `npm:${source.packageName}:${Date.now()}`;
+      // TODO: log error
     }
   }
 } 

@@ -20,7 +20,7 @@ JS Report Card is an open-source tool that analyzes JavaScript and TypeScript pr
 - ✅ Project cloning/downloading system
 - ✅ Simple plugin system for analyzers
 - ✅ Basic caching mechanism
-- [ ] Initial CI setup
+- ✅ Initial CI setup
 
 ### v0.2.0 - Essential Analyzers
 **Focus**: Match Go Report Card's basic analyzers

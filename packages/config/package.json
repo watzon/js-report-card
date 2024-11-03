@@ -4,7 +4,7 @@
     "private": true,
     "files": [
         "typescript/base.json",
-        "eslint/library.js",
+        "eslint/library.mjs",
         "jest/jest.config.ts"
     ],
     "devDependencies": {

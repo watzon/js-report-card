@@ -158,8 +158,8 @@ describe('GitDownloader', () => {
       // Act
       try {
         await downloader.download(source);
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (error) {
-        // Ignore error
       }
 
       // Assert

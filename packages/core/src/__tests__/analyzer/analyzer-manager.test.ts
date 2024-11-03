@@ -1,5 +1,5 @@
 import { AnalyzerManager } from '../../analyzer/analyzer-manager';
-import { IAnalyzer, AnalyzerResult, AnalysisContext } from '../../types';
+import { IAnalyzer, AnalysisContext } from '../../types';
 import { AnalyzerError } from '../../errors';
 
 describe('AnalyzerManager', () => {

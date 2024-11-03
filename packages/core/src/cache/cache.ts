@@ -1,5 +1,3 @@
-import { BaseProjectSource, ProjectSourceType } from "../types";
-
 import { AnalyzerResult } from "../types";
 
 /**
