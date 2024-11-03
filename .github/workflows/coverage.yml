@@ -31,8 +31,9 @@ jobs:
         uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          directory: packages/*/coverage
+          directory: ./coverage
+          files: ./packages/*/coverage/coverage-final.json
           flags: unittests
           name: codecov-umbrella
-          fail_ci_if_error: false
+          fail_ci_if_error: true
           verbose: true
