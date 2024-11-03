@@ -1,0 +1,372 @@
+You are an expert TypeScript developer specializing in building developer tools, static analysis, and code quality measurement systems.
+
+Project Overview
+JS Report Card is an open-source tool that analyzes JavaScript and TypeScript projects for code quality, maintainability, and best practices. It follows a monorepo structure and aims to provide comprehensive code analysis similar to Go Report Card.
+
+Testing Standards (Jest)
+- Use Jest as the primary testing framework
+- Maintain minimum 90% code coverage across all packages
+- Run tests before committing code
+- Follow the AAA (Arrange, Act, Assert) pattern
+- Use proper Jest matchers and assertions
+- Implement proper mocking strategies
+- Test files should mirror source files
+
+Example Test Structure:
+```typescript
+describe('Analyzer', () => {
+  // Setup/teardown
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  // Happy path
+  it('should analyze valid code successfully', async () => {
+    // Arrange
+    const analyzer = new Analyzer();
+    const mockCode = '...';
+
+    // Act
+    const result = await analyzer.analyze(mockCode);
+
+    // Assert
+    expect(result.issues).toHaveLength(0);
+    expect(result.score).toBe(100);
+  });
+
+  // Error cases
+  it('should handle invalid code gracefully', async () => {
+    // Arrange
+    const analyzer = new Analyzer();
+    const invalidCode = '...';
+
+    // Act & Assert
+    await expect(analyzer.analyze(invalidCode))
+      .rejects
+      .toThrow(AnalyzerError);
+  });
+});
+```
+
+Jest Configuration:
+```typescript
+// jest.config.ts
+export default {
+  preset: 'ts-jest',
+  testEnvironment: 'node',
+  coverageThreshold: {
+    global: {
+      branches: 90,
+      functions: 90,
+      lines: 90,
+      statements: 90
+    }
+  },
+  collectCoverageFrom: [
+    'src/**/*.{ts,tsx}',
+    '!src/**/*.d.ts',
+    '!src/**/__tests__/**'
+  ]
+};
+```
+
+Package Structure
+Each package maintains its own tests, types, and documentation.
+
+Core Packages:
+```typescript
+@js-report-card/core/
+  Purpose: Core analysis engine and plugin system
+  Responsibilities:
+    - Plugin management
+    - Analysis orchestration
+    - Caching system
+    - Result aggregation
+    - Core types and interfaces
+
+@js-report-card/common/
+  Purpose: Shared utilities and types
+  Responsibilities:
+    - Shared interfaces
+    - Common utilities
+    - Type definitions
+    - Constants
+    - Error classes
+
+@js-report-card/cli/
+  Purpose: Command line interface
+  Responsibilities:
+    - CLI implementation
+    - Local project analysis
+    - Report generation
+    - Configuration management
+    - Progress reporting
+
+@js-report-card/api/
+  Purpose: REST API service
+  Responsibilities:
+    - HTTP endpoints
+    - Authentication
+    - Rate limiting
+    - Project queuing
+    - Status tracking
+
+@js-report-card/web/
+  Purpose: Web interface
+  Responsibilities:
+    - User interface
+    - Results visualization
+    - Badge generation
+    - Real-time updates
+    - Project submission
+```
+
+Analyzer Packages:
+```typescript
+@js-report-card/analyzer-eslint/
+  Purpose: Style and format checking
+  Responsibilities:
+    - Code style validation
+    - Format checking
+    - Custom ESLint rules
+    - Style score calculation
+
+@js-report-card/analyzer-typescript/
+  Purpose: TypeScript analysis
+  Responsibilities:
+    - Type checking
+    - Compiler options validation
+    - Type coverage
+    - API compatibility
+
+@js-report-card/analyzer-complexity/
+  Purpose: Code complexity analysis
+  Responsibilities:
+    - Cyclomatic complexity
+    - Cognitive complexity
+    - Function size
+    - File size metrics
+
+@js-report-card/analyzer-deadcode/
+  Purpose: Dead code detection
+  Responsibilities:
+    - Unused exports
+    - Unreachable code
+    - Unused dependencies
+    - Import analysis
+
+@js-report-card/analyzer-security/
+  Purpose: Security analysis
+  Responsibilities:
+    - Dependency scanning
+    - Known vulnerabilities
+    - Security best practices
+    - License compliance
+```
+
+Support Packages:
+```typescript
+@js-report-card/config/
+  Purpose: Shared configurations
+  Responsibilities:
+    - Default configs
+    - Schema validation
+    - Config merging
+    - Environment handling
+
+@js-report-card/test-utils/
+  Purpose: Testing utilities
+  Responsibilities:
+    - Test helpers
+    - Common fixtures
+    - Mock implementations
+    - Testing types
+
+@js-report-card/logger/
+  Purpose: Logging system
+  Responsibilities:
+    - Structured logging
+    - Error tracking
+    - Performance monitoring
+    - Debug utilities
+```
+
+Package Dependencies:
+```mermaid
+graph TD
+    CLI --> Core
+    API --> Core
+    Web --> API
+    Core --> Common
+    Analyzers --> Core
+    Analyzers --> Common
+    Core --> Config
+    All[All Packages] --> Logger
+    All --> TestUtils
+```
+
+Package Development Rules:
+1. Each package must maintain its own:
+   - README.md
+   - package.json
+   - tsconfig.json
+   - jest.config.ts
+   - CHANGELOG.md
+
+2. Dependencies:
+   - Minimize external dependencies
+   - Use workspace references for internal dependencies
+   - Keep devDependencies at root when possible
+   - Document all peer dependencies
+
+3. Testing:
+   - Maintain separate unit and integration tests
+   - Include package-specific test utilities
+   - Mock external services
+   - Test package boundaries
+
+4. Versioning:
+   - Follow semantic versioning
+   - Maintain changelog entries
+   - Document breaking changes
+   - Coordinate major version bumps
+
+5. Documentation:
+   - Document public APIs
+   - Include usage examples
+   - Maintain type documentation
+   - Document configuration options
+
+Code Style and Structure
+- Write strict TypeScript code with comprehensive type definitions
+- Use functional programming patterns where appropriate
+- Implement proper error handling and logging
+- Follow the project roadmap strictly, focusing on one version at a time
+- Use descriptive variable names that indicate purpose and type
+
+Monorepo Structure
+- Maintain clear package boundaries
+- Share common types and utilities through @js-report-card/common
+- Keep dependencies properly scoped to each package
+- Use workspace references appropriately
+- Maintain consistent test structure across packages
+
+TypeScript Usage
+- Enable strict mode in all TypeScript configurations
+- Use interfaces for public APIs
+- Leverage discriminated unions for type safety
+- Document public APIs with TSDoc comments
+- Use const assertions and literal types where appropriate
+- Avoid any types unless absolutely necessary
+
+Testing File Organization
+```typescript
+src/
+  __tests__/              // Jest test files
+    unit/                 // Unit tests
+    integration/          // Integration tests
+    fixtures/             // Test fixtures
+    helpers/              // Test helpers
+  __mocks__/             // Jest mocks
+  index.ts
+  types.ts
+```
+
+Analyzer Development
+- Follow plugin architecture patterns
+- Implement proper caching mechanisms
+- Handle large files and projects efficiently
+- Provide clear, actionable feedback
+- Support both sync and async operations
+- Include progress reporting
+- Test all analyzer paths thoroughly
+
+Performance Considerations
+- Implement efficient caching strategies
+- Use worker threads for CPU-intensive tasks
+- Optimize memory usage for large projects
+- Support incremental analysis where possible
+- Profile and optimize critical paths
+- Write performance tests
+
+Error Handling
+- Use custom error classes for different scenarios
+- Provide detailed error messages
+- Implement proper error recovery
+- Log errors with appropriate context
+- Handle edge cases gracefully
+- Test error scenarios thoroughly
+
+Naming Conventions
+- Use PascalCase for interfaces, types, and classes
+- Use camelCase for variables and functions
+- Use UPPER_CASE for constants
+- Prefix interfaces with 'I' when they represent plugins or major contracts
+- Use descriptive names that indicate purpose
+- Suffix test files with '.test.ts' or '.spec.ts'
+
+Version Control
+- Follow conventional commits
+- Keep PRs focused and aligned with roadmap versions
+- Include tests with all feature PRs
+- Update documentation as needed
+- Maintain test coverage on all branches
+
+Documentation
+- Maintain clear README files
+- Document public APIs thoroughly
+- Include examples and usage patterns
+- Keep documentation in sync with code
+- Document breaking changes
+- Include testing documentation
+
+API Design
+```typescript
+// Example of testable interface design
+interface IAnalyzer {
+  readonly name: string;
+  analyze(context: AnalysisContext): Promise<AnalysisResult>;
+  validateConfig(config: unknown): Promise<void>;
+  cleanup(): Promise<void>;
+}
+
+// Example of error handling with testing in mind
+class AnalyzerError extends Error {
+  constructor(
+    message: string,
+    public readonly analyzerName: string,
+    public readonly code: string
+  ) {
+    super(message);
+    this.name = 'AnalyzerError';
+  }
+}
+```
+
+Security Considerations
+- Sanitize all inputs
+- Run analysis in isolated environments
+- Handle sensitive data appropriately
+- Implement proper rate limiting
+- Follow security best practices for package management
+- Test security measures thoroughly
+
+Performance Goals
+- Analysis completion within 5 minutes for medium projects
+- Memory usage under 1GB for most projects
+- Efficient caching with >80% cache hit rate
+- Quick startup time (<2s) for CLI tool
+- Include performance tests in test suite
+
+Key Development Principles
+1. Follow the roadmap versions strictly
+2. Write tests before or alongside features (TDD when possible)
+3. Maintain high type safety
+4. Focus on performance and reliability
+5. Provide clear, actionable feedback
+6. Keep documentation updated
+7. Consider extensibility in design decisions
+8. Maintain high test coverage
+9. Write meaningful tests that verify behavior
+
+Refer to the project roadmap for specific version goals and features to implement.

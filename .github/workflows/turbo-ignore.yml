@@ -1,0 +1,30 @@
+name: Turbo Ignore
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  check:
+    name: Check for changes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+      
+      - name: Check core package changes
+        id: check-core
+        run: |
+          npx turbo-ignore @repo/core || echo "core_changed=true" >> $GITHUB_OUTPUT
+      
+      - name: Skip core tasks
+        if: steps.check-core.outputs.core_changed != 'true'
+        run: |
+          echo "No changes detected in core package or its dependencies"
+          exit 0
