@@ -114,7 +114,7 @@ describe('MemoryCache', () => {
           analyzerId: 'test',
           score: 100,
           issues: [{
-            severity: IssueSeverity.ERROR,
+            severity: IssueSeverity.CRITICAL,
             message: 'test',
             rule: 'test-rule',
             file: 'test.ts',

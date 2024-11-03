@@ -122,11 +122,11 @@ export interface IProjectDownloader {
  */
 export enum IssueSeverity {
     /** Critical problems that must be fixed */
-    ERROR = 'error',
+    CRITICAL = 3,
     /** Potential problems or code smells */
-    WARNING = 'warning',
+    MAJOR = 2,
     /** Suggestions for improvement */
-    INFO = 'info',
+    MINOR = 1
 }
 
 /**
@@ -205,7 +205,7 @@ export interface IAnalyzer {
     readonly name: string;
     /** Description of what this analyzer does */
     readonly description: string;
-    
+
     /**
      * Analyze the project and return results
      * @param context Analysis context including project info and configuration
@@ -241,3 +241,33 @@ export interface ProjectAnalysisResult {
     timestamp: string;
     duration: number;
 }
+
+export interface AggregatedResult {
+    /** Overall project score (0-100) */
+    score: number;
+    /** Individual analyzer results */
+    analyzerResults: AnalyzerResult[];
+    /** Summary of all issues found */
+    issues: {
+        critical: number;
+        major: number;
+        minor: number;
+        total: number;
+    };
+    /** Analysis metadata */
+    metadata: {
+        timestamp: number;
+        duration: number;
+        analyzersRun: string[];
+        totalFilesAnalyzed: number;
+    };
+}
+
+export interface AggregationOptions {
+    /** Weights for different analyzers (analyzer ID -> weight) */
+    weights?: Record<string, number>;
+    /** Minimum score required (0-100) */
+    minimumScore?: number;
+    /** Maximum number of issues to include in report */
+    maxIssues?: number;
+} 

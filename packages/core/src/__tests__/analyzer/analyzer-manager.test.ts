@@ -33,7 +33,7 @@ describe('AnalyzerManager', () => {
     it('should throw error when registering duplicate analyzer', () => {
       const analyzer = createMockAnalyzer('test');
       manager.registerAnalyzer(analyzer);
-      
+
       expect(() => manager.registerAnalyzer(analyzer))
         .toThrow(AnalyzerError);
     });
@@ -43,7 +43,7 @@ describe('AnalyzerManager', () => {
     it('should run analysis with all enabled analyzers', async () => {
       const analyzer1 = createMockAnalyzer('test1');
       const analyzer2 = createMockAnalyzer('test2');
-      
+
       manager.registerAnalyzer(analyzer1);
       manager.registerAnalyzer(analyzer2);
 
@@ -84,7 +84,7 @@ describe('AnalyzerManager', () => {
     it('should cleanup all analyzers', async () => {
       const analyzer1 = createMockAnalyzer('test1');
       const analyzer2 = createMockAnalyzer('test2');
-      
+
       manager.registerAnalyzer(analyzer1);
       manager.registerAnalyzer(analyzer2);
 
@@ -92,6 +92,78 @@ describe('AnalyzerManager', () => {
 
       expect(analyzer1.cleanup).toHaveBeenCalled();
       expect(analyzer2.cleanup).toHaveBeenCalled();
+    });
+
+    it('should handle analyzer without cleanup method', async () => {
+      const analyzer = createMockAnalyzer('test');
+      // @ts-expect-error - Remove cleanup method
+      delete analyzer.cleanup; // Remove cleanup method
+
+      manager.registerAnalyzer(analyzer);
+      await expect(manager.cleanup()).resolves.not.toThrow();
+    });
+
+    it('should handle missing analyzer config', async () => {
+      const analyzer = createMockAnalyzer('test');
+      manager.registerAnalyzer(analyzer);
+
+      const context: Omit<AnalysisContext, 'config'> = {
+        projectRoot: '/test',
+        files: ['file1.ts']
+      };
+
+      // Don't provide config for 'test' analyzer
+      const results = await manager.runAnalysis(context, {});
+
+      expect(results).toHaveLength(1);
+      expect(analyzer.analyze).toHaveBeenCalledWith({
+        ...context,
+        config: { enabled: true }
+      });
+    });
+
+    it('should skip cache when no download metadata', async () => {
+      const cache = new MemoryCache();
+      const manager = new AnalyzerManager({ cache });
+      const analyzer = createMockAnalyzer('test');
+      manager.registerAnalyzer(analyzer);
+
+      const context: Omit<AnalysisContext, 'config'> = {
+        projectRoot: '/test',
+        files: ['file1.ts'],
+        // No downloadResult provided
+      };
+
+      // Run twice to verify no caching
+      await manager.runAnalysis(context, { test: { enabled: true } });
+      await manager.runAnalysis(context, { test: { enabled: true } });
+
+      expect(analyzer.analyze).toHaveBeenCalledTimes(2);
+    });
+
+    it('should handle missing cache implementation', async () => {
+      const manager = new AnalyzerManager(); // No cache provided
+      const analyzer = createMockAnalyzer('test');
+      manager.registerAnalyzer(analyzer);
+
+      const context: Omit<AnalysisContext, 'config'> = {
+        projectRoot: '/test',
+        files: ['file1.ts'],
+        downloadResult: {
+          path: '/test',
+          cleanup: jest.fn(),
+          metadata: {
+            version: 'test-version',
+            type: ProjectSourceType.GIT
+          }
+        }
+      };
+
+      // Run twice to verify no caching
+      await manager.runAnalysis(context, { test: { enabled: true } });
+      await manager.runAnalysis(context, { test: { enabled: true } });
+
+      expect(analyzer.analyze).toHaveBeenCalledTimes(2);
     });
   });
 
@@ -101,7 +173,7 @@ describe('AnalyzerManager', () => {
 
     beforeEach(() => {
       cache = new MemoryCache();
-      manager = new AnalyzerManager({ 
+      manager = new AnalyzerManager({
         cache,
         maxCacheAge: 1000 // 1 second for testing
       });
@@ -177,7 +249,7 @@ describe('AnalyzerManager', () => {
       const analyzer = createMockAnalyzer('test');
       const validationError = new Error('Invalid config');
       analyzer.validateConfig = jest.fn().mockRejectedValue(validationError);
-      
+
       manager.registerAnalyzer(analyzer);
 
       const context: Omit<AnalysisContext, 'config'> = {
@@ -186,7 +258,7 @@ describe('AnalyzerManager', () => {
       };
 
       await expect(manager.runAnalysis(context, {
-        test: { 
+        test: {
           enabled: true,
           rules: { someRule: true }
         }
@@ -197,7 +269,7 @@ describe('AnalyzerManager', () => {
       const analyzer = createMockAnalyzer('test');
       const analysisError = new Error('Analysis failed');
       analyzer.analyze = jest.fn().mockRejectedValue(analysisError);
-      
+
       manager.registerAnalyzer(analyzer);
 
       const context: Omit<AnalysisContext, 'config'> = {
@@ -215,7 +287,7 @@ describe('AnalyzerManager', () => {
     it('should return all registered analyzers', () => {
       const analyzer1 = createMockAnalyzer('test1');
       const analyzer2 = createMockAnalyzer('test2');
-      
+
       manager.registerAnalyzer(analyzer1);
       manager.registerAnalyzer(analyzer2);
 
@@ -225,4 +297,4 @@ describe('AnalyzerManager', () => {
       expect(analyzers).toContain(analyzer2);
     });
   });
-}); 
+});

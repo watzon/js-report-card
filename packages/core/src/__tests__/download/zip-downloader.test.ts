@@ -26,7 +26,7 @@ jest.mock('stream/promises');
 
 describe('ZipDownloader', () => {
   let downloader: ZipDownloader;
-  
+
   const createMockResponse = () => ({
     ok: true,
     statusText: 'OK',
@@ -40,17 +40,17 @@ describe('ZipDownloader', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    
+
     (tmpdir as jest.Mock).mockReturnValue('/tmp');
     (join as jest.Mock).mockImplementation((...args) => args.join('/'));
     (rm as jest.Mock).mockResolvedValue(undefined);
     (mkdir as jest.Mock).mockResolvedValue(undefined);
     (extract as jest.Mock).mockResolvedValue(undefined);
     (pipeline as jest.Mock).mockResolvedValue(undefined);
-    
+
     // Mock global fetch
     global.fetch = jest.fn().mockImplementation(() => Promise.resolve(createMockResponse()));
-    
+
     downloader = new ZipDownloader();
   });
 
@@ -60,7 +60,7 @@ describe('ZipDownloader', () => {
         type: ProjectSourceType.ZIP,
         url: 'https://example.com/project.zip'
       };
-      
+
       expect(downloader.canHandle(source)).toBe(true);
     });
 
@@ -69,7 +69,7 @@ describe('ZipDownloader', () => {
         type: ProjectSourceType.GIT,
         url: 'https://github.com/user/repo.git'
       };
-      
+
       expect(downloader.canHandle(source)).toBe(false);
     });
   });
@@ -123,7 +123,7 @@ describe('ZipDownloader', () => {
         type: ProjectSourceType.ZIP,
         url: 'https://example.com/project.zip'
       };
-      
+
       global.fetch = jest.fn().mockResolvedValue({
         ...createMockResponse(),
         ok: false,
@@ -142,7 +142,7 @@ describe('ZipDownloader', () => {
         type: ProjectSourceType.ZIP,
         url: 'https://example.com/project.zip'
       };
-      
+
       (extract as jest.Mock).mockRejectedValue(new Error('Extract failed'));
 
       // Act
@@ -165,7 +165,7 @@ describe('ZipDownloader', () => {
         type: ProjectSourceType.ZIP,
         url: 'https://example.com/project.zip'
       };
-      
+
       global.fetch = jest.fn().mockRejectedValue(new Error('Network error'));
 
       await expect(downloader.download(source))
@@ -178,7 +178,7 @@ describe('ZipDownloader', () => {
         type: ProjectSourceType.ZIP,
         url: 'https://example.com/project.zip'
       };
-      
+
       (extract as jest.Mock).mockRejectedValue(new Error('Invalid zip file'));
 
       await expect(downloader.download(source))
@@ -204,6 +204,50 @@ describe('ZipDownloader', () => {
         }
       });
     });
+
+    it('should handle missing response body', async () => {
+      const source: ZipProjectSource = {
+        type: ProjectSourceType.ZIP,
+        url: 'https://example.com/project.zip'
+      };
+
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        statusText: 'OK',
+        body: null
+      });
+
+      await expect(downloader.download(source))
+        .rejects
+        .toThrow(DownloaderError);
+    });
+
+    it('should log cleanup errors after failed extraction', async () => {
+      const source: ZipProjectSource = {
+        type: ProjectSourceType.ZIP,
+        url: 'https://example.com/project.zip'
+      };
+
+      // Mock console.error to track calls
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+
+      // Make extract fail and cleanup fail
+      (extract as jest.Mock).mockRejectedValue(new Error('Extract failed'));
+      (rm as jest.Mock)
+        .mockResolvedValueOnce(undefined) // First rm succeeds (initial cleanup)
+        .mockRejectedValueOnce(new Error('Cleanup failed')); // Second rm fails
+
+      await expect(downloader.download(source))
+        .rejects
+        .toThrow(DownloaderError);
+
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'Failed to cleanup after failed zip extraction:',
+        expect.any(Error)
+      );
+
+      consoleSpy.mockRestore();
+    });
   });
 
   describe('cleanup', () => {
@@ -213,7 +257,7 @@ describe('ZipDownloader', () => {
         type: ProjectSourceType.ZIP,
         url: 'https://example.com/project.zip'
       };
-      
+
       const result = await downloader.download(source);
 
       // Act
@@ -232,7 +276,7 @@ describe('ZipDownloader', () => {
         type: ProjectSourceType.ZIP,
         url: 'https://example.com/project.zip'
       };
-      
+
       const result = await downloader.download(source);
       (rm as jest.Mock).mockRejectedValueOnce(new Error('Cleanup failed'));
 
@@ -242,4 +286,4 @@ describe('ZipDownloader', () => {
         .toThrow('Cleanup failed');
     });
   });
-}); 
+});
