@@ -89,8 +89,10 @@ export class LocalDownloader implements IProjectDownloader {
     try {
       const stats = await stat(source.path);
       return `local:${source.path}:${stats.mtime.getTime()}`;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       return `local:${source.path}:${Date.now()}`;
+      // TODO: log error
     }
   }
 } 

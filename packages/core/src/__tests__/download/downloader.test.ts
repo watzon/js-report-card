@@ -136,13 +136,13 @@ describe('ProjectDownloader', () => {
 
   describe('error cases', () => {
     it('should handle undefined source', async () => {
-      await expect(downloader.download(undefined as any))
+      await expect(downloader.download(undefined as unknown as BaseProjectSource))
         .rejects
         .toThrow(DownloaderError);
     });
 
     it('should handle null source', async () => {
-      await expect(downloader.download(null as any))
+      await expect(downloader.download(null as unknown as BaseProjectSource))
         .rejects
         .toThrow(DownloaderError);
     });
@@ -157,7 +157,7 @@ describe('ProjectDownloader', () => {
     it('should handle downloader throwing non-Error objects', async () => {
       const mockDownloader: IProjectDownloader = {
         canHandle: () => true,
-        download: () => Promise.reject('string error' as any)
+        download: () => Promise.reject('string error')
       };
 
       downloader.registerDownloader('test', mockDownloader);

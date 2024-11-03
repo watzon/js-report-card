@@ -1,6 +1,6 @@
 # JS Report Card
 
-[![CI](https://github.com/username/js-report-card/actions/workflows/ci.yml/badge.svg)](https://github.com/username/js-report-card/actions/workflows/ci.yml)
+[![CI](https://github.com/watzon/js-report-card/actions/workflows/ci.yml/badge.svg)](https://github.com/watzon/js-report-card/actions/workflows/ci.yml)
 [![Coverage](https://codecov.io/gh/username/js-report-card/branch/main/graph/badge.svg)](https://codecov.io/gh/username/js-report-card)
 [![Turbo](https://img.shields.io/badge/powered%20by-Turbo-EF4444.svg)](https://turbo.build)
 
