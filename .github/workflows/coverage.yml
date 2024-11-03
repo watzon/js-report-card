@@ -6,10 +6,6 @@ on:
   pull_request:
     branches: [ main ]
 
-env:
-  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
-  TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
-
 jobs:
   coverage:
     name: Test Coverage
@@ -29,7 +25,7 @@ jobs:
         run: npm ci
       
       - name: Run tests with coverage
-        run: npx turbo run test:coverage --affected
+        run: npx turbo run test:coverage
       
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
